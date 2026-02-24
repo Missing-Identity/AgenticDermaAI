@@ -1,0 +1,43 @@
+# Core agentic framework
+crewai
+crewai-tools
+
+# Ollama HTTP client (CrewAI uses LiteLLM internally which calls Ollama)
+litellm
+
+# PubMed access
+biopython
+
+# HTTP requests (for our custom image tool)
+httpx
+
+# Image handling
+pillow
+
+# PDF generation
+reportlab
+
+# Environment variable management
+python-dotenv
+
+# Data validation
+pydantic
+
+# FastAPI for web server
+fastapi
+fastapi-sso
+
+# ASGI server for FastAPI
+uvicorn[standard]
+
+# Multipart form / file upload support
+python-multipart
+
+# HTML templating for FastAPI
+jinja2
+
+# APScheduler for scheduling tasks
+apscheduler
+
+# Email validation
+pydantic[email]

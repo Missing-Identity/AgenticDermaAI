@@ -1,0 +1,56 @@
+# Secrets
+.env
+
+# Patient data and generated files
+patient_profile.json
+uploads/
+reports/
+
+# Personal images
+images/
+v2-guide/
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# Tests and coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Git
+.git/
+.gitignore
+
+# Docker files themselves (not needed inside image)
+docker-compose.yml
+Dockerfile
+
+# Documentation
+v2-guide/
+*.md
+
+# Logs
+*.log

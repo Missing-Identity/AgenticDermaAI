@@ -1,0 +1,51 @@
+services:
+
+  # ── Ollama model server ──────────────────────────────────────────────────────
+  # Port 11434 is bound only to the loopback interface (127.0.0.1) so it is
+  # never reachable from the public internet — only from the internal Docker
+  # network (where the app container can reach it via hostname "ollama").
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "127.0.0.1:11434:11434"
+    volumes:
+      # Persist downloaded models across container restarts
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
+
+  # ── FastAPI application ──────────────────────────────────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    depends_on:
+      ollama:
+        condition: service_healthy
+    volumes:
+      # Persist uploaded images and generated PDF reports on the host
+      - ./uploads:/app/uploads
+      - ./reports:/app/reports
+    restart: unless-stopped
+    networks:
+      - default
+
+volumes:
+  # Named volume so Ollama models survive container recreation
+  ollama_data:

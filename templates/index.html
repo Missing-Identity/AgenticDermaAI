@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DermaAI v2 — Intelligent Dermatology Diagnosis</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+<body>
+
+  <!-- ── Top bar ─────────────────────────────────────────────────────────── -->
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="logo">
+        <span class="logo-icon">⬡</span>
+        <span class="logo-text">DermaAI <span class="logo-v2">v2</span></span>
+      </div>
+      <nav class="stepper" id="stepper">
+        <div class="step active" data-step="intake">
+          <span class="step-num">1</span><span class="step-label">Patient Info</span>
+        </div>
+        <div class="step-connector"></div>
+        <div class="step" data-step="clarification">
+          <span class="step-num">2</span><span class="step-label">Clarification</span>
+        </div>
+        <div class="step-connector"></div>
+        <div class="step" data-step="analysis">
+          <span class="step-num">3</span><span class="step-label">Analysis</span>
+        </div>
+        <div class="step-connector"></div>
+        <div class="step" data-step="review">
+          <span class="step-num">4</span><span class="step-label">Doctor Review</span>
+        </div>
+        <div class="step-connector"></div>
+        <div class="step" data-step="complete">
+          <span class="step-num">5</span><span class="step-label">Reports</span>
+        </div>
+      </nav>
+      <div class="topbar-badge">AI-Assisted · Not a substitute for professional diagnosis</div>
+    </div>
+  </header>
+
+  <!-- ── Main content area ────────────────────────────────────────────────── -->
+  <main class="main">
+
+    <!-- ════════════════════════════════════════════════════════════════════ -->
+    <!-- VIEW 1: PATIENT INTAKE                                              -->
+    <!-- ════════════════════════════════════════════════════════════════════ -->
+    <div id="view-intake" class="view active">
+      <div class="view-header">
+        <h1>Patient Information</h1>
+        <p class="view-subtitle">Complete the form below, or click <strong>Load Saved Profile</strong> to use your previously entered details.</p>
+      </div>
+
+      <form id="intake-form" class="intake-grid" novalidate>
+
+        <!-- Left column: Personal details -->
+        <section class="card form-section">
+          <h2 class="card-title">Personal Details</h2>
+
+          <div class="form-row two-col">
+            <div class="field">
+              <label for="f-name">Full Name <span class="req">*</span></label>
+              <input type="text" id="f-name" name="name" placeholder="e.g. Priya Sharma" required />
+            </div>
+            <div class="field">
+              <label for="f-age">Age (years) <span class="req">*</span></label>
+              <input type="number" id="f-age" name="age" min="1" max="120" placeholder="e.g. 34" required />
+            </div>
+          </div>
+
+          <div class="form-row two-col">
+            <div class="field">
+              <label for="f-sex">Biological Sex <span class="req">*</span></label>
+              <select id="f-sex" name="sex" required>
+                <option value="">Select…</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other / Prefer not to say</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="f-skin-tone">Skin Tone</label>
+              <select id="f-skin-tone" name="skin_tone">
+                <option value="">Select…</option>
+                <option value="very light">Very Light</option>
+                <option value="light">Light</option>
+                <option value="medium">Medium</option>
+                <option value="medium-dark">Medium Dark</option>
+                <option value="dark">Dark</option>
+                <option value="very dark">Very Dark</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row two-col">
+            <div class="field">
+              <label for="f-occupation">Occupation</label>
+              <input type="text" id="f-occupation" name="occupation" placeholder="e.g. Nurse, Farmer…" />
+            </div>
+            <div class="field">
+              <label for="f-pincode">Area Pincode</label>
+              <input type="text" id="f-pincode" name="pincode" placeholder="e.g. 400001" />
+            </div>
+          </div>
+
+          <div class="form-row two-col">
+            <div class="field">
+              <label for="f-gender">Gender Identity (optional)</label>
+              <input type="text" id="f-gender" name="gender" placeholder="If different from sex" />
+            </div>
+            <div class="field">
+              <label for="f-caste">Ethnicity / Caste</label>
+              <input type="text" id="f-caste" name="caste" placeholder="e.g. South Asian" />
+            </div>
+          </div>
+        </section>
+
+        <!-- Right column: Medical history -->
+        <section class="card form-section">
+          <h2 class="card-title">Medical History</h2>
+
+          <div class="field">
+            <label for="f-allergies">Known Allergies</label>
+            <input type="text" id="f-allergies" name="known_allergies" placeholder="Comma-separated, e.g. Penicillin, Latex" />
+            <span class="field-hint">Leave blank if none</span>
+          </div>
+
+          <div class="field">
+            <label for="f-medications">Current Medications</label>
+            <input type="text" id="f-medications" name="current_medications" placeholder="Comma-separated, e.g. Metformin 500mg" />
+          </div>
+
+          <div class="field">
+            <label for="f-past-skin">Past Skin Conditions</label>
+            <input type="text" id="f-past-skin" name="past_skin_conditions" placeholder="Comma-separated, e.g. Eczema, Psoriasis" />
+          </div>
+
+          <div class="field">
+            <label for="f-family">Family Skin History</label>
+            <input type="text" id="f-family" name="family_skin_history" placeholder="e.g. Father had psoriasis" />
+          </div>
+
+          <div class="field">
+            <label for="f-notes">Additional Notes</label>
+            <textarea id="f-notes" name="notes" rows="2" placeholder="Anything else relevant to your health"></textarea>
+          </div>
+        </section>
+
+        <!-- Full-width: Symptoms + Image -->
+        <section class="card form-section full-width">
+          <h2 class="card-title">Symptom Description <span class="req">*</span></h2>
+          <p class="card-subtitle">Describe your skin concern in as much detail as possible.</p>
+
+          <div class="field">
+            <textarea id="f-symptoms" name="symptom_text" rows="5" required
+              placeholder="e.g. I have had a very itchy, bumpy rash on my left forearm for 4 days. It is spreading. I work as a painter and recently switched solvent brands."></textarea>
+          </div>
+
+          <h2 class="card-title" style="margin-top:1.5rem">Skin Image (optional but recommended)</h2>
+          <div id="drop-zone" class="drop-zone">
+            <div class="drop-icon">📷</div>
+            <p class="drop-text">Drag & drop an image here, or <label for="f-image" class="drop-link">browse</label></p>
+            <p class="drop-hint">JPG, PNG, WEBP · Max 20 MB</p>
+            <input type="file" id="f-image" name="image" accept=".jpg,.jpeg,.png,.webp,.bmp" hidden />
+            <div id="image-preview-wrap" class="image-preview-wrap hidden">
+              <img id="image-preview" class="image-preview" alt="Preview" />
+              <button type="button" id="image-remove" class="btn-remove">✕ Remove</button>
+            </div>
+          </div>
+        </section>
+
+        <div class="form-actions full-width">
+          <button type="submit" class="btn btn-primary btn-large" id="intake-submit">
+            <span class="btn-text">Start AI Analysis</span>
+            <span class="btn-arrow">→</span>
+          </button>
+          <button type="button" class="btn btn-ghost" id="btn-load-profile">
+            Load Saved Profile
+          </button>
+          <p class="form-disclaimer">Your data is processed locally and is not sent to any external server.</p>
+        </div>
+
+      </form>
+    </div><!-- /view-intake -->
+
+
+    <!-- ════════════════════════════════════════════════════════════════════ -->
+    <!-- VIEW 2: CLARIFICATION                                               -->
+    <!-- ════════════════════════════════════════════════════════════════════ -->
+    <div id="view-clarification" class="view">
+      <div class="view-header">
+        <h1>A Few More Details</h1>
+        <p class="view-subtitle">The AI needs a little more information to give you an accurate diagnosis. Please answer the questions below.</p>
+      </div>
+
+      <div class="card clarification-card">
+        <div class="clarif-round-badge" id="clarif-round">Round 1 of 2</div>
+        <div id="clarif-questions" class="clarif-questions"></div>
+        <div class="form-actions">
+          <button class="btn btn-primary" id="clarif-submit">Submit Answers →</button>
+          <button class="btn btn-ghost" id="clarif-skip">Skip — I don't know</button>
+        </div>
+      </div>
+    </div><!-- /view-clarification -->
+
+
+    <!-- ════════════════════════════════════════════════════════════════════ -->
+    <!-- VIEW 3: ANALYSIS IN PROGRESS                                        -->
+    <!-- ════════════════════════════════════════════════════════════════════ -->
+    <div id="view-analysis" class="view">
+      <div class="pipeline-wrap">
+
+        <!-- Progress bar row -->
+        <div class="pipeline-progress-row">
+          <div class="pipeline-track">
+            <div class="pipeline-fill" id="pipeline-fill"></div>
+          </div>
+          <span class="pipeline-count" id="pipeline-count">0 / 10</span>
+        </div>
+
+        <!-- Active-agent hero -->
+        <div class="pipeline-hero" id="pipeline-hero">
+          <div class="pipeline-hero-phase" id="pipeline-hero-phase">Initialising</div>
+          <div class="pipeline-hero-icon" id="pipeline-hero-icon">⬡</div>
+          <div class="pipeline-hero-name" id="pipeline-hero-name">Starting analysis…</div>
+          <div class="pipeline-dots" id="pipeline-dots">
+            <span></span><span></span><span></span>
+          </div>
+        </div>
+
+        <!-- Completed stage cards -->
+        <p class="pipeline-section-label hidden" id="pipeline-section-label">Completed stages</p>
+        <div class="pipeline-grid" id="pipeline-grid"></div>
+
+      </div>
+    </div><!-- /view-analysis -->
+
+
+    <!-- ════════════════════════════════════════════════════════════════════ -->
+    <!-- VIEW 4: DOCTOR REVIEW                                               -->
+    <!-- ════════════════════════════════════════════════════════════════════ -->
+    <div id="view-review" class="view">
+      <div class="view-header">
+        <h1>Analysis Complete — Doctor Review Required</h1>
+        <p class="view-subtitle">Review the AI's findings and approve or request changes before the patient report is generated.</p>
+      </div>
+
+      <!-- Run info banner -->
+      <div class="run-banner" id="run-banner">
+        <span id="run-count-badge" class="run-count-badge">Run #1</span>
+        <span id="feedback-history-label"></span>
+      </div>
+
+      <!-- Doctor / Patient tab switcher -->
+      <div class="tab-bar">
+        <button class="tab-btn active" data-tab="doctor">Doctor View</button>
+        <button class="tab-btn" data-tab="patient">Patient View</button>
+      </div>
+
+      <!-- ── DOCTOR TAB ──────────────────────────────────────────────────── -->
+      <div id="tab-doctor" class="tab-pane active">
+
+        <!-- Diagnosis summary strip -->
+        <div class="card diagnosis-strip" id="doctor-strip">
+          <div class="strip-primary">
+            <span class="strip-label">Primary Diagnosis</span>
+            <span class="strip-value" id="doc-primary-diagnosis">—</span>
+          </div>
+          <div class="strip-meta">
+            <span class="badge-confidence" id="doc-confidence">—</span>
+            <span class="severity-badge" id="doc-severity">—</span>
+            <span class="rediagnosis-badge hidden" id="doc-rediagnosis-badge">Re-diagnosis applied</span>
+          </div>
+        </div>
+
+        <div class="review-grid">
+
+          <!-- Lesion analysis -->
+          <div class="card review-card" id="card-lesion">
+            <h3 class="review-card-title">Lesion Profile</h3>
+            <table class="detail-table" id="doc-lesion-table">
+              <tbody></tbody>
+            </table>
+          </div>
+
+          <!-- Symptom decomposition -->
+          <div class="card review-card" id="card-decomp">
+            <h3 class="review-card-title">Symptom Decomposition</h3>
+            <div id="doc-decomp"></div>
+          </div>
+
+          <!-- Research -->
+          <div class="card review-card full-width" id="card-research">
+            <h3 class="review-card-title">Research Evidence</h3>
+            <div id="doc-research"></div>
+          </div>
+
+          <!-- Differential diagnosis -->
+          <div class="card review-card full-width" id="card-diff">
+            <h3 class="review-card-title">Differential Diagnosis</h3>
+            <div id="doc-diff"></div>
+          </div>
+
+          <!-- Treatment plan -->
+          <div class="card review-card full-width" id="card-treatment">
+            <h3 class="review-card-title">Treatment Plan</h3>
+            <div id="doc-treatment"></div>
+          </div>
+
+          <!-- Clinical reasoning -->
+          <div class="card review-card full-width" id="card-reasoning">
+            <h3 class="review-card-title">Orchestrator Clinical Reasoning</h3>
+            <p id="doc-reasoning" class="prose-text"></p>
+            <div id="doc-rediagnosis-block" class="rediagnosis-block hidden">
+              <span class="rediagnosis-label">Re-diagnosis Reason:</span>
+              <p id="doc-rediagnosis-reason" class="rediagnosis-text"></p>
+            </div>
+          </div>
+
+          <!-- Feedback history -->
+          <div class="card review-card full-width" id="card-feedback-history">
+            <h3 class="review-card-title">Doctor Feedback History</h3>
+            <div id="doc-feedback-history"><p class="muted">No feedback rounds yet.</p></div>
+          </div>
+
+        </div>
+      </div><!-- /tab-doctor -->
+
+      <!-- ── PATIENT TAB ─────────────────────────────────────────────────── -->
+      <div id="tab-patient" class="tab-pane">
+        <div class="patient-view">
+
+          <div class="card patient-diagnosis-card">
+            <div class="patient-diagnosis-header">
+              <div>
+                <p class="patient-label">Your Diagnosis</p>
+                <h2 class="patient-diagnosis" id="pat-diagnosis">—</h2>
+              </div>
+              <span class="severity-badge large" id="pat-severity">—</span>
+            </div>
+            <p class="patient-summary" id="pat-summary"></p>
+          </div>
+
+          <div class="card">
+            <h3 class="review-card-title">What You Should Do</h3>
+            <ul class="patient-recs" id="pat-recs"></ul>
+          </div>
+
+          <div class="card">
+            <h3 class="review-card-title">When to Seek Urgent Care</h3>
+            <p class="patient-urgency" id="pat-urgency"></p>
+          </div>
+
+          <div class="card card-disclaimer">
+            <p id="pat-disclaimer" class="disclaimer-text"></p>
+          </div>
+
+        </div>
+      </div><!-- /tab-patient -->
+
+      <!-- ── APPROVAL CONTROLS ───────────────────────────────────────────── -->
+      <div class="approval-bar card">
+        <div class="approval-bar-inner">
+          <div class="approval-label">
+            <strong>Doctor Decision</strong>
+            <span class="approval-hint">Only approve when you are satisfied with the AI's clinical assessment.</span>
+          </div>
+          <div class="approval-actions">
+            <button class="btn btn-danger" id="btn-reject">Reject &amp; Request Changes</button>
+            <button class="btn btn-success" id="btn-approve">Approve Diagnosis ✓</button>
+          </div>
+        </div>
+
+        <!-- Rejection panel (hidden by default) -->
+        <div id="reject-panel" class="reject-panel hidden">
+          <div class="field">
+            <label for="reject-feedback">Describe what needs to change <span class="req">*</span></label>
+            <textarea id="reject-feedback" rows="4"
+              placeholder="e.g. The colour assessment is wrong — the lesion is hyperpigmented not erythematous. The differential should include melanoma."></textarea>
+          </div>
+          <div class="field">
+            <label>Re-run scope</label>
+            <div class="scope-options">
+              <label class="scope-option">
+                <input type="radio" name="scope" value="full" checked />
+                <span class="scope-label">Full re-run</span>
+                <span class="scope-desc">Every agent from scratch</span>
+              </label>
+              <label class="scope-option">
+                <input type="radio" name="scope" value="post_research" />
+                <span class="scope-label">Post-research re-run</span>
+                <span class="scope-desc">Differential + Treatment + Orchestrator only</span>
+              </label>
+              <label class="scope-option">
+                <input type="radio" name="scope" value="orchestrator_only" />
+                <span class="scope-label">Orchestrator only</span>
+                <span class="scope-desc">Re-synthesise with your feedback</span>
+              </label>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button class="btn btn-danger" id="btn-reject-confirm">Confirm Rejection &amp; Re-run →</button>
+            <button class="btn btn-ghost" id="btn-reject-cancel">Cancel</button>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /view-review -->
+
+
+    <!-- ════════════════════════════════════════════════════════════════════ -->
+    <!-- VIEW 5: COMPLETE                                                    -->
+    <!-- ════════════════════════════════════════════════════════════════════ -->
+    <div id="view-complete" class="view">
+      <div class="view-header">
+        <div class="complete-check">✓</div>
+        <h1>Diagnosis Approved</h1>
+        <p class="view-subtitle">The doctor has approved the diagnosis. Your reports are ready to download.</p>
+      </div>
+
+      <div class="report-cards">
+        <div class="card report-card">
+          <div class="report-icon doc-icon">📋</div>
+          <h3>Doctor Report</h3>
+          <p>Full clinical assessment, differential diagnosis, treatment protocol, audit trail.</p>
+          <a class="btn btn-primary" id="dl-doctor" href="#" target="_blank">Download PDF</a>
+        </div>
+        <div class="card report-card">
+          <div class="report-icon patient-icon">📄</div>
+          <h3>Patient Summary</h3>
+          <p>Plain-language explanation, recommendations, and when to seek care.</p>
+          <a class="btn btn-primary" id="dl-patient" href="#" target="_blank">Download PDF</a>
+        </div>
+        <div class="card report-card">
+          <div class="report-icon audit-icon">🔍</div>
+          <h3>AI Audit Trail</h3>
+          <p>Complete record of every agent's output and the doctor's approval chain.</p>
+          <a class="btn btn-primary" id="dl-audit" href="#" target="_blank">Download PDF</a>
+        </div>
+      </div>
+
+      <div class="new-session-wrap">
+        <button class="btn btn-ghost" id="btn-new-session">Start New Session →</button>
+      </div>
+    </div><!-- /view-complete -->
+
+  </main><!-- /main -->
+
+  <!-- ── Global overlay / spinner ─────────────────────────────────────────── -->
+  <div id="overlay" class="overlay hidden">
+    <div class="spinner-wrap">
+      <div class="spinner"></div>
+      <p id="overlay-msg" class="spinner-msg">Processing…</p>
+    </div>
+  </div>
+
+  <script src="/static/js/app.js"></script>
+</body>
+</html>
