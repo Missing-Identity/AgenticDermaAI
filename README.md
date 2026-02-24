@@ -24,7 +24,7 @@ This project addresses that gap by treating the vision model's raw assessment as
 
 **MedGemma's raw output is the base truth.** The primary diagnosis comes directly from MedGemma examining the image and patient symptoms.
 
-**The agentic workflow proves or disproves it.** Lesion specialists (colour, texture, border, shape, levelling), Research (PubMed), Differential, and Mimic agents gather evidence that **supports or challenges** MedGemma's diagnosis. They validate or refute it—they do not simply expand it.
+**The agentic workflow proves or disproves it.** Lesion specialists (colour, texture, border, shape, levelling, pattern), Research (PubMed), Differential, and Mimic agents gather evidence that **supports or challenges** MedGemma's diagnosis. They validate or refute it—they do not simply expand it.
 
 **Debate Resolver.** MedGemma re-examines the image vs. the candidate list and makes the final call—confirming or overriding the initial diagnosis.
 
@@ -113,7 +113,7 @@ flowchart TD
 
     initAgents --> wireTasks["Phase 2: Wire Tasks + Inputs"]
     wireTasks --> medgemmaInit["MedGemma Initial Diagnosis (Base Truth)"]
-    medgemmaInit --> phaseA["Phase 3A: Biodata -> Lesion x5 -> Decomp -> Research -> Differential -> Mimic"]
+    medgemmaInit --> phaseA["Phase 3A: Biodata -> Lesion x6 -> Decomp -> Research -> Differential -> Mimic"]
     phaseA --> hasImage{"Image provided?"}
     hasImage -->|Yes| debate["Phase 3.5: Debate Resolver"]
     hasImage -->|No| phaseB
@@ -152,6 +152,7 @@ flowchart TD
     visionParallel --> levellingTask["Levelling Task"]
     visionParallel --> borderTask["Border Task"]
     visionParallel --> shapeTask["Shape Task"]
+    visionParallel --> patternTask["Pattern Task"]
 
     lesionGate -->|No| noLesion["Skip lesion tasks"]
 
@@ -161,6 +162,7 @@ flowchart TD
     levellingTask --> researchTask
     borderTask --> researchTask
     shapeTask --> researchTask
+    patternTask --> researchTask
     noLesion --> researchTask
 
     researchTask --> diffTask["Differential Task"]
@@ -215,10 +217,11 @@ The runtime includes both CrewAI agents and direct MedGemma calls for vision-bas
 | Levelling Agent | `agents/lesion_agents.py` | `VISION_LLM` (MedGemma) | Morphology evidence — elevation | image + biodata | free-text elevation assessment (adapted to `LevellingOutput`) |
 | Border Agent | `agents/lesion_agents.py` | `VISION_LLM` (MedGemma) | Morphology evidence — border/edge | image + biodata | free-text border assessment (adapted to `BorderOutput`) |
 | Shape Agent | `agents/lesion_agents.py` | `VISION_LLM` (MedGemma) | Morphology evidence — geometric form | image + biodata | free-text shape assessment (adapted to `ShapeOutput`) |
+| Pattern Agent | `agents/lesion_agents.py` | `VISION_LLM` (MedGemma) | Morphology evidence — configuration/pattern (annular, bullseye, etc.) | image + biodata | free-text pattern assessment (adapted to `PatternOutput`) |
 | Decomposition Agent | `agents/decomposition_agent.py` | `ORCHESTRATOR_LLM` (`qwen2.5:7b-instruct`) | Extracts structured symptoms/history | symptom text + optional biodata context | free-text extraction (adapted to `DecompositionOutput`) |
 | Clarification Agent | `agents/clarification_agent.py` | `VISION_LLM` (MedGemma) | Detects missing critical fields and asks follow-ups | decomposition output (+ optional biodata) | free-text clarification decision (adapted to `ClarificationOutput`) |
 | Research Agent | `agents/research_agent.py` | `ORCHESTRATOR_LLM` (`qwen2.5:7b-instruct`) | **Evidence for/against** — PubMed synthesis | lesion summary + biodata + decomposition | free-text research summary (adapted to `ResearchSummary`) |
-| Differential Agent | `agents/clinical_agents.py` | `ORCHESTRATOR_LLM` (`qwen2.5:7b-instruct`) | **Evidence for/against** — ranked differential with for/against | lesion outputs + decomp + research + MedGemma anchor | free-text differential reasoning (adapted to `DifferentialDiagnosisOutput`) |
+| Differential Agent | `agents/clinical_agents.py` | `ORCHESTRATOR_LLM` (`qwen2.5:7b-instruct`) | **Evidence for/against** — ranked differential with for/against | lesion outputs (colour, texture, levelling, border, shape, pattern) + decomp + research + MedGemma anchor | free-text differential reasoning (adapted to `DifferentialDiagnosisOutput`) |
 | Mimic Resolution Agent | `agents/clinical_agents.py` | `ORCHESTRATOR_LLM` (`qwen2.5:7b-instruct`) | Distinguishes top confusable conditions | differential + lesion outputs + research + MedGemma anchor | free-text mimic verdict (adapted to `MimicResolutionOutput`) |
 | **Debate Resolver** | `agents/visual_differential_agent.py` | MedGemma (direct call) | **Validation** — re-examines image vs. candidates, confirms or overrides | image + primary + differential candidates | `DebateResolverOutput` |
 | Treatment Agent | `agents/clinical_agents.py` | `ORCHESTRATOR_LLM` (`qwen2.5:7b-instruct`) | Creates diagnosis-specific protocol | biodata + research + differential + mimic | free-text plan (adapted to `TreatmentPlanOutput`) |
@@ -466,6 +469,7 @@ This example follows one realistic case through all stages, including follow-up.
    - Levelling: slightly raised plaques.
    - Border: irregular but non-sharp transition.
    - Shape: patchy/oval clustered morphology.
+   - Pattern: overall configuration (annular, bullseye/target-like, nummular, etc.) with diagnostic significance.
 
 5. **Decomposition Agent (main run)**
    - Produces structured symptoms: pruritus, forearm location, 4-day duration, worsening progression, occupational chemical exposure.

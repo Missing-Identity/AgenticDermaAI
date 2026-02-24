@@ -356,6 +356,7 @@ def create_differential_task(
     levelling_task=None,
     border_task=None,
     shape_task=None,
+    pattern_task=None,
     decomposition_task=None,
     research_task=None,
     medgemma_anchor: str = "",
@@ -363,7 +364,8 @@ def create_differential_task(
     context = [
         t for t in [
             biodata_task, colour_task, texture_task,
-            levelling_task, border_task, shape_task, decomposition_task, research_task,
+            levelling_task, border_task, shape_task, pattern_task,
+            decomposition_task, research_task,
         ]
         if t is not None
     ]
@@ -379,7 +381,7 @@ def create_differential_task(
         description=(
             anchor_block +
             "Using ALL upstream agent outputs — visual lesion findings (colour, surface, elevation, "
-            "border, shape), patient biodata, decomposed symptoms, and research evidence — "
+            "border, shape, pattern), patient biodata, decomposed symptoms, and research evidence — "
             "produce a ranked differential diagnosis.\n\n"
 
             "1. Identify the single most likely PRIMARY diagnosis from the combined evidence.\n"
@@ -428,6 +430,7 @@ def create_mimic_resolution_task(
     levelling_task=None,
     border_task=None,
     shape_task=None,
+    pattern_task=None,
     # biodata and decomposition already incorporated by Differential — excluded to reduce context
     biodata_task=None,
     decomposition_task=None,
@@ -437,7 +440,7 @@ def create_mimic_resolution_task(
     context = [
         t for t in [
             differential_task,
-            colour_task, texture_task, levelling_task, border_task, shape_task,
+            colour_task, texture_task, levelling_task, border_task, shape_task, pattern_task,
             research_task,
         ]
         if t is not None

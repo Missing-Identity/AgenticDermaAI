@@ -196,6 +196,9 @@ def generate_doctor_audit_pdf(audit) -> bytes:
         lesion_rows.append(["Border", border_output.border, border_output.reason])
     if audit.shape_output:
         lesion_rows.append(["Shape", audit.shape_output.shape, audit.shape_output.reason])
+    pattern_output = getattr(audit, "pattern_output", None)
+    if pattern_output:
+        lesion_rows.append(["Pattern", pattern_output.pattern, pattern_output.reason])
 
     if len(lesion_rows) > 1:
         lt = Table(lesion_rows, colWidths=[3.5*cm, 4*cm, 9.5*cm])

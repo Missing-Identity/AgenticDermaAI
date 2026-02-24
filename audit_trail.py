@@ -22,6 +22,7 @@ class AuditTrail:
     vision_levelling_raw: str = ""
     vision_border_raw: str = ""
     vision_shape_raw: str = ""
+    vision_pattern_raw: str = ""
 
     # Agent outputs (stored as raw strings + pydantic objects where available)
     biodata_summary: str = ""
@@ -30,6 +31,7 @@ class AuditTrail:
     levelling_output: Optional[object] = None    # LevellingOutput pydantic
     border_output: Optional[object] = None       # BorderOutput pydantic
     shape_output: Optional[object] = None        # ShapeOutput pydantic
+    pattern_output: Optional[object] = None     # PatternOutput pydantic
     decomposition_output: Optional[object] = None  # DecompositionOutput pydantic
     research_output: Optional[object] = None     # ResearchSummary pydantic
     differential_output: Optional[object] = None # DifferentialDiagnosisOutput pydantic
