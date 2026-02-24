@@ -206,6 +206,7 @@ def create_cmo_task(
     mimic_task=None,
     lesion_summary: str = "",
     confirmed_diagnosis: str = "",
+    medgemma_initial_diagnosis: str = "",
     # Legacy keyword args accepted but ignored
     visual_verdict_summary: str = "",
     colour_task=None,
@@ -237,6 +238,16 @@ def create_cmo_task(
 
     lesion_block = f"{lesion_summary}\n\n" if lesion_summary else ""
 
+    medgemma_block = ""
+    if medgemma_initial_diagnosis:
+        medgemma_block = (
+            f"MEDGEMMA INITIAL DIAGNOSIS (image + patient symptoms — highest authority):\n"
+            f"   {medgemma_initial_diagnosis}\n\n"
+            f"This is the default primary diagnosis. Accept it unless the downstream research\n"
+            f"and specialist agents provide extremely strong, specific evidence for a different diagnosis.\n"
+            f"If you override it, set re_diagnosis_applied = true and explain why.\n\n"
+        )
+
     if confirmed_diagnosis:
         diagnosis_block = (
             f"CONFIRMED DIAGNOSIS (visual debate resolver — authoritative):\n"
@@ -266,6 +277,7 @@ def create_cmo_task(
     return Task(
         description=(
             feedback_block +
+            medgemma_block +
             lesion_block +
             diagnosis_block +
             instructions

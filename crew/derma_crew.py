@@ -36,6 +36,7 @@ from agents.clinical_agents import (
 from agents.visual_differential_agent import (
     run_debate_resolver, DebateResolverOutput,
     run_visual_differential_review, VisualDifferentialReviewOutput,
+    run_initial_medgemma_diagnosis, MedGemmaInitialDiagnosis,
 )
 from audit_trail import AuditTrail
 from utils.schema_adapter import adapt_to_model
@@ -248,9 +249,30 @@ class DermaCrew:
         # Lesion agents and tasks only run when an image is provided
         vision: dict = {}
         lesion_summary: str = ""
+        medgemma_initial: MedGemmaInitialDiagnosis = MedGemmaInitialDiagnosis()
+        medgemma_anchor: str = ""
         if self.image_path:
             vision = self._run_vision_analysis()
             lesion_summary = self._build_lesion_summary(vision)
+
+            # ── Initial holistic MedGemma diagnosis (image + patient symptoms) ──
+            # MedGemma sees the full image + raw patient text and writes freely.
+            # The formatter LLM extracts primary_diagnosis + reasoning from the response.
+            # This becomes the highest-authority anchor for all downstream agents.
+            print("\n[Phase 2/4] ── Initial MedGemma Diagnosis ─────────────────────")
+            try:
+                medgemma_initial = run_initial_medgemma_diagnosis(self.image_path, self.patient_text)
+                if medgemma_initial.primary_diagnosis:
+                    medgemma_anchor = f"{medgemma_initial.primary_diagnosis} — {medgemma_initial.reasoning}"
+                    lesion_summary += (
+                        f"\n\nMEDGEMMA INITIAL HOLISTIC ASSESSMENT (image + patient symptoms):\n"
+                        f"- Primary Diagnosis: {medgemma_initial.primary_diagnosis}\n"
+                        f"- Reasoning: {medgemma_initial.reasoning}"
+                    )
+                    self.audit.raw_outputs["medgemma_initial"] = medgemma_anchor
+                    print(f"[Phase 2/4] Anchor diagnosis: '{medgemma_initial.primary_diagnosis}'")
+            except Exception as mg_err:
+                print(f"[Phase 2/4] WARNING: Initial MedGemma diagnosis failed: {mg_err}")
 
             colour_task     = create_colour_task(colour_agent, self.image_path, biodata_task, vision_result=vision["colour"])
             texture_task    = create_texture_task(texture_agent, self.image_path, biodata_task, vision_result=vision["texture"])
@@ -286,6 +308,7 @@ class DermaCrew:
             shape_task=shape_task,
             decomposition_task=decomp_task,
             research_task=research_task,
+            medgemma_anchor=medgemma_anchor,
         )
 
         # Mimic: needs differential + visual evidence; research available as lower-weight context
@@ -298,6 +321,7 @@ class DermaCrew:
             border_task=border_task,
             shape_task=shape_task,
             research_task=research_task,
+            medgemma_anchor=medgemma_anchor,
         )
 
         # ── Phase 3A: Run Phase A crew (up to mimic resolution) ──────────────
@@ -340,9 +364,13 @@ class DermaCrew:
                 if entry.condition
             ]
             try:
+                # Use the MedGemma anchor as the primary diagnosis so it is always
+                # candidate #1 in the debate. Fall back to the differential primary
+                # if no anchor was produced.
+                debate_primary = medgemma_initial.primary_diagnosis or diff_parsed.primary_diagnosis or ""
                 debate_output = run_debate_resolver(
                     self.image_path,
-                    diff_parsed.primary_diagnosis or "",
+                    debate_primary,
                     candidates,
                 )
                 confirmed_diagnosis = debate_output.confirmed_diagnosis or diff_parsed.primary_diagnosis or ""
@@ -364,7 +392,7 @@ class DermaCrew:
         )
 
         # CMO receives compact lesion_summary + confirmed_diagnosis from the Debate Resolver.
-        # It no longer arbitrates — it builds clinical output for the confirmed diagnosis.
+        # It also receives the MedGemma initial anchor as the highest-authority default.
         cmo_task = create_cmo_task(
             cmo_agent,
             biodata_task=biodata_task,
@@ -374,6 +402,7 @@ class DermaCrew:
             mimic_task=mimic_task,
             lesion_summary=lesion_summary,
             confirmed_diagnosis=confirmed_diagnosis,
+            medgemma_initial_diagnosis=medgemma_anchor,
         )
 
         scribe_task = create_scribe_task(
