@@ -17,7 +17,8 @@ from agents.lesion_agents import (
     create_levelling_agent, create_levelling_task,
     create_border_agent, create_border_task,
     create_shape_agent, create_shape_task,
-    ColourOutput, SurfaceOutput, LevellingOutput, BorderOutput, ShapeOutput,
+    create_pattern_agent, create_pattern_task,
+    ColourOutput, SurfaceOutput, LevellingOutput, BorderOutput, ShapeOutput, PatternOutput,
 )
 from agents.decomposition_agent import create_decomposition_agent, create_decomposition_task, DecompositionOutput
 from agents.research_agent import create_research_agent, create_research_task, ResearchSummary
@@ -105,10 +106,17 @@ class DermaCrew:
                 "In 2-3 concise sentences, describe the geometric shape and overall outline of the lesion. "
                 "State the form, symmetry, and any distinctive structural characteristics.",
             ),
+            (
+                "pattern",
+                "You are a Dermatology Pattern Analyst examining a skin lesion. "
+                "In 2-3 concise sentences, describe the overall configuration and pattern of the lesion. "
+                "Note any distinctive arrangements — e.g. annular, bullseye/target-like, concentric rings, "
+                "nummular, reticular — and any classic morphologies that may have diagnostic significance.",
+            ),
         ]
 
         results: dict[str, str] = {}
-        with ThreadPoolExecutor(max_workers=5) as executor:
+        with ThreadPoolExecutor(max_workers=6) as executor:
             futures = {
                 executor.submit(tool._run, self.image_path, prompt): key
                 for key, prompt in specs
@@ -128,7 +136,7 @@ class DermaCrew:
         Reduces downstream agent token consumption by ~60% for the affected tasks.
         """
         parts = ["LESION VISUAL SUMMARY (from MedGemma specialist agents):"]
-        for key in ("colour", "texture", "levelling", "border", "shape"):
+        for key in ("colour", "texture", "levelling", "border", "shape", "pattern"):
             value = (vision.get(key) or "").strip()
             if value:
                 parts.append(f"- {key.capitalize()}: {value}")
@@ -232,6 +240,7 @@ class DermaCrew:
         levelling_agent  = create_levelling_agent()
         border_agent     = create_border_agent()
         shape_agent      = create_shape_agent()
+        pattern_agent   = create_pattern_agent()
         decomp_agent     = create_decomposition_agent()
         research_agent   = create_research_agent()
         diff_agent       = create_differential_agent()
@@ -279,10 +288,11 @@ class DermaCrew:
             levelling_task  = create_levelling_task(levelling_agent, self.image_path, biodata_task, vision_result=vision["levelling"])
             border_task     = create_border_task(border_agent, self.image_path, biodata_task, vision_result=vision["border"])
             shape_task      = create_shape_task(shape_agent, self.image_path, biodata_task, vision_result=vision["shape"])
-            lesion_agents   = [colour_agent, texture_agent, levelling_agent, border_agent, shape_agent]
-            lesion_tasks    = [colour_task, texture_task, levelling_task, border_task, shape_task]
+            pattern_task    = create_pattern_task(pattern_agent, self.image_path, biodata_task, vision_result=vision["pattern"])
+            lesion_agents   = [colour_agent, texture_agent, levelling_agent, border_agent, shape_agent, pattern_agent]
+            lesion_tasks    = [colour_task, texture_task, levelling_task, border_task, shape_task, pattern_task]
         else:
-            colour_task = texture_task = levelling_task = border_task = shape_task = None
+            colour_task = texture_task = levelling_task = border_task = shape_task = pattern_task = None
             lesion_agents = []
             lesion_tasks  = []
 
@@ -306,6 +316,7 @@ class DermaCrew:
             levelling_task=levelling_task,
             border_task=border_task,
             shape_task=shape_task,
+            pattern_task=pattern_task,
             decomposition_task=decomp_task,
             research_task=research_task,
             medgemma_anchor=medgemma_anchor,
@@ -320,13 +331,14 @@ class DermaCrew:
             levelling_task=levelling_task,
             border_task=border_task,
             shape_task=shape_task,
+            pattern_task=pattern_task,
             research_task=research_task,
             medgemma_anchor=medgemma_anchor,
         )
 
         # ── Phase 3A: Run Phase A crew (up to mimic resolution) ──────────────
         print("\n[Phase 3A/4] ── Running Phase A Crew ──────────────────────────")
-        print("  Agents: Biodata → Lesion (×5) → Decomp → Research → Differential → Mimic")
+        print("  Agents: Biodata → Lesion (×6) → Decomp → Research → Differential → Mimic")
 
         phase_a_kwargs = dict(
             agents=[biodata_agent] + lesion_agents + [decomp_agent, research_agent, diff_agent, mimic_agent],
@@ -480,7 +492,8 @@ class DermaCrew:
             self.audit.vision_texture_raw   = vision["texture"]
             self.audit.vision_levelling_raw = vision["levelling"]
             self.audit.vision_border_raw    = vision["border"]
-            self.audit.vision_shape_raw     = vision["shape"]
+            self.audit.vision_shape_raw    = vision["shape"]
+            self.audit.vision_pattern_raw  = vision["pattern"]
 
         self.audit.biodata_summary = biodata_task.output.raw if biodata_task.output else ""
 
@@ -490,12 +503,14 @@ class DermaCrew:
             self.audit.levelling_output = self._adapt_task_output("levelling_output", levelling_task, LevellingOutput)
             self.audit.border_output    = self._adapt_task_output("border_output", border_task, BorderOutput)
             self.audit.shape_output     = self._adapt_task_output("shape_output", shape_task, ShapeOutput)
+            self.audit.pattern_output   = self._adapt_task_output("pattern_output", pattern_task, PatternOutput)
         else:
             self.audit.colour_output    = None
             self.audit.texture_output   = None
             self.audit.levelling_output = None
             self.audit.border_output    = None
             self.audit.shape_output     = None
+            self.audit.pattern_output   = None
 
         self.audit.decomposition_output      = self._adapt_task_output("decomposition_output", decomp_task, DecompositionOutput)
         self.audit.research_output           = self._adapt_task_output("research_output", research_task, ResearchSummary)

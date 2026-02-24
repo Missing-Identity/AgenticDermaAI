@@ -497,6 +497,7 @@ function renderReviewView(result, audit) {
     ['Elevation', audit?.levelling_output?.levelling   || lp.levelling || '—', audit?.levelling_output?.reason || ''],
     ['Border',    audit?.border_output?.border         || lp.border    || '—', audit?.border_output?.reason    || ''],
     ['Shape',     audit?.shape_output?.shape           || lp.shape     || '—', audit?.shape_output?.reason     || ''],
+    ['Pattern',   audit?.pattern_output?.pattern       || lp.pattern   || '—', audit?.pattern_output?.reason   || ''],
   ];
   lesionRows.forEach(([label, val, reason]) => {
     const tr = document.createElement('tr');

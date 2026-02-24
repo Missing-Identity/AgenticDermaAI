@@ -71,6 +71,16 @@ class ShapeOutput(ResilientBase):
         return v if v is not None else ""
 
 
+class PatternOutput(ResilientBase):
+    pattern: str = Field(description="Overall configuration and pattern of the lesion")
+    reason: str = Field(default="", description="Clinical reasoning for the pattern assessment")
+
+    @field_validator("pattern", "reason", mode="before")
+    @classmethod
+    def coerce_null_str(cls, v):
+        return v if v is not None else ""
+
+
 # ── Agent 1: Lesion Colour ────────────────────────────────────────────────────
 
 def create_colour_agent() -> Agent:
@@ -359,6 +369,64 @@ def create_shape_task(
         expected_output=(
             "A short free-text shape assessment (2-4 sentences). "
             "Describe the lesion geometry/outline and brief clinical reasoning. "
+            "Do not use JSON or markdown."
+        ),
+        agent=agent,
+        context=context,
+    )
+
+
+# ── Agent 6: Lesion Pattern ───────────────────────────────────────────────────
+
+def create_pattern_agent() -> Agent:
+    return Agent(
+        role="Dermatology Pattern Analyst",
+        goal=(
+            "Describe the overall configuration and pattern of the skin lesion. "
+            "Identify distinctive arrangements that can point to specific diagnoses."
+        ),
+        backstory=(
+            "You specialise in recognising lesion patterns and configurations. "
+            "You assess whether the lesion is annular, bullseye/target-like, nummular, "
+            "reticular, serpiginous, or has any other distinctive arrangement. "
+            "Classic patterns — e.g. target-like morphology — can be pathognomonic. "
+            "You describe what you see without forcing a diagnosis."
+        ),
+        llm=VISION_LLM,
+        verbose=True,
+    )
+
+
+def create_pattern_task(
+    agent: Agent,
+    image_path: str,
+    biodata_task=None,
+    vision_result: str = None,
+) -> Task:
+    context = [biodata_task] if biodata_task else []
+
+    if vision_result:
+        description = (
+            f"You directly examined the skin lesion image at: {image_path}\n\n"
+            f"Your clinical observations from the image:\n{vision_result}\n\n"
+            "Using your direct visual examination above, describe the overall pattern "
+            "and configuration of the lesion. Note any distinctive arrangements "
+            "that may have diagnostic significance."
+        )
+    else:
+        description = (
+            f"Examine the skin lesion image at: {image_path}\n\n"
+            "You are directly analysing this image. "
+            "Describe the overall pattern and configuration of the lesion: "
+            "its arrangement (annular, bullseye/target-like, nummular, reticular, "
+            "or other distinctive forms) and any classic morphologies you observe."
+        )
+
+    return Task(
+        description=description,
+        expected_output=(
+            "A short free-text pattern assessment (2-4 sentences). "
+            "Describe the lesion configuration and brief clinical reasoning. "
             "Do not use JSON or markdown."
         ),
         agent=agent,
