@@ -470,7 +470,13 @@ function renderReviewView(result, audit) {
   histLabel.textContent = runCount > 1 ? `${runCount - 1} feedback round(s) completed` : '';
 
   // ── Doctor strip ───────────────────────────────────────────────────────
-  document.getElementById('doc-primary-diagnosis').textContent = result.primary_diagnosis || '—';
+  const finalDx = (result.primary_diagnosis && result.primary_diagnosis !== 'Unknown')
+    ? result.primary_diagnosis
+    : (audit?.differential_output?.primary_diagnosis || '—');
+  const showFallback = (!result.primary_diagnosis || result.primary_diagnosis === 'Unknown') && audit?.differential_output?.primary_diagnosis;
+  const stripValueEl = document.getElementById('doc-primary-diagnosis');
+  stripValueEl.textContent = finalDx;
+  stripValueEl.title = showFallback ? 'Scribe did not return a diagnosis; showing differential agent’s proposed primary' : '';
   document.getElementById('doc-confidence').textContent = `${(result.confidence || '').toUpperCase()} confidence`;
   setSeverityBadge('doc-severity', result.severity);
 
@@ -550,9 +556,16 @@ function renderReviewView(result, audit) {
   document.getElementById('doc-reasoning').textContent = result.clinical_reasoning || '—';
   const reBlock = document.getElementById('doc-rediagnosis-block');
   const reReason = document.getElementById('doc-rediagnosis-reason');
-  if (result.re_diagnosis_applied && result.re_diagnosis_reason) {
+  const proposedDx = audit?.differential_output?.primary_diagnosis?.trim();
+  const finalDxVal = (result.primary_diagnosis || '').trim();
+  if (result.re_diagnosis_applied) {
     reBlock.classList.remove('hidden');
-    reReason.textContent = result.re_diagnosis_reason;
+    let reContent = '';
+    if (proposedDx && finalDxVal && proposedDx.toLowerCase() !== finalDxVal.toLowerCase()) {
+      reContent = `<strong>Proposed:</strong> ${escHtml(proposedDx)} → <strong>Final:</strong> ${escHtml(finalDxVal)}<br><br>`;
+    }
+    reContent += escHtml(result.re_diagnosis_reason || '').replace(/\n/g, '<br>');
+    reReason.innerHTML = reContent;
   } else {
     reBlock.classList.add('hidden');
   }
@@ -561,7 +574,10 @@ function renderReviewView(result, audit) {
   renderFeedbackHistory(audit?.feedback_history || [], audit?.adapter_status || {}, audit?.adapter_errors || {});
 
   // ── Patient tab ────────────────────────────────────────────────────────
-  document.getElementById('pat-diagnosis').textContent = result.primary_diagnosis || '—';
+  const patDx = (result.primary_diagnosis && result.primary_diagnosis !== 'Unknown')
+    ? result.primary_diagnosis
+    : (audit?.differential_output?.primary_diagnosis || '—');
+  document.getElementById('pat-diagnosis').textContent = patDx;
   setSeverityBadge('pat-severity', result.severity);
   document.getElementById('pat-summary').textContent = result.patient_summary || '';
 
@@ -600,7 +616,7 @@ function renderDifferential(diff, mimic, vdr, result) {
   let html = `
     <table class="detail-table" style="margin-bottom:1rem"><tbody>
       <tr>
-        <td>Primary Diagnosis</td>
+        <td>Proposed Primary</td>
         <td><strong>${escHtml(diff.primary_diagnosis || '—')}</strong> ${primaryStatus}</td>
       </tr>
       <tr><td>Confidence</td><td>${escHtml(diff.confidence_in_primary || '—')}</td></tr>
