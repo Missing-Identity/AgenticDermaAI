@@ -8,6 +8,8 @@ import json
 import asyncio
 import threading
 import tempfile
+import time
+import subprocess
 from pathlib import Path
 from typing import Optional
 
@@ -16,6 +18,7 @@ from fastapi.responses import StreamingResponse, JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from dotenv import load_dotenv
+from apscheduler.schedulers.background import BackgroundScheduler
 
 load_dotenv()
 
@@ -44,6 +47,7 @@ def _new_session() -> dict:
         "audit": None,
         "error": None,
         "pdf_paths": {},             # { "doctor": path, "patient": path, "audit": path }
+        "_created_at": time.time(),  # used by the cleanup job
     }
 
 
@@ -477,6 +481,120 @@ async def download_pdf(session_id: str, pdf_type: str):
     )
 
 
+# ── Periodic cleanup ──────────────────────────────────────────────────────────
+
+CLEANUP_MAX_AGE_SECONDS = 2 * 60 * 60  # 2 hours
+
+
+def _cleanup_old_files():
+    """
+    Delete uploaded images and generated PDFs that are older than
+    CLEANUP_MAX_AGE_SECONDS. Also removes stale completed/errored sessions
+    from memory so the SESSIONS dict doesn't grow indefinitely.
+    """
+    now = time.time()
+    deleted_files = 0
+    deleted_sessions = 0
+
+    for folder in (BASE_DIR / "uploads", BASE_DIR / "reports"):
+        if not folder.exists():
+            continue
+        for f in folder.iterdir():
+            if not f.is_file():
+                continue
+            try:
+                age = now - f.stat().st_mtime
+                if age > CLEANUP_MAX_AGE_SECONDS:
+                    f.unlink()
+                    deleted_files += 1
+            except Exception as e:
+                print(f"[Cleanup] Could not delete {f}: {e}")
+
+    stale_ids = [
+        sid for sid, sess in list(SESSIONS.items())
+        if sess.get("status") in ("approved", "error")
+        and (now - sess.get("_created_at", now)) > CLEANUP_MAX_AGE_SECONDS
+    ]
+    for sid in stale_ids:
+        SESSIONS.pop(sid, None)
+        deleted_sessions += 1
+
+    if deleted_files or deleted_sessions:
+        print(
+            f"[Cleanup] Removed {deleted_files} file(s) and "
+            f"{deleted_sessions} session(s) older than "
+            f"{CLEANUP_MAX_AGE_SECONDS // 3600}h"
+        )
+
+
+# ── Ollama watchdog ───────────────────────────────────────────────────────────
+
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+OLLAMA_WATCHDOG_INTERVAL = 60   # seconds between health checks
+_ollama_process: subprocess.Popen | None = None  # handle to a watchdog-spawned process
+
+
+def _ollama_is_alive() -> bool:
+    """Return True if Ollama is responding on its API port."""
+    import urllib.request
+    try:
+        with urllib.request.urlopen(f"{OLLAMA_BASE_URL}/api/tags", timeout=5) as r:
+            return r.status == 200
+    except Exception:
+        return False
+
+
+def _start_ollama() -> None:
+    """Launch `ollama serve` as a background subprocess."""
+    global _ollama_process
+    try:
+        print("[Watchdog] Starting ollama serve...")
+        _ollama_process = subprocess.Popen(
+            ["ollama", "serve"],
+            stdout=open("/tmp/ollama.log", "a"),
+            stderr=subprocess.STDOUT,
+        )
+        # Wait up to 30 s for it to become responsive
+        for _ in range(30):
+            time.sleep(1)
+            if _ollama_is_alive():
+                print("[Watchdog] Ollama is back up.")
+                return
+        print("[Watchdog] WARNING: Ollama did not respond within 30 s after restart.")
+    except FileNotFoundError:
+        print("[Watchdog] ERROR: 'ollama' binary not found — is Ollama installed?")
+    except Exception as e:
+        print(f"[Watchdog] ERROR starting Ollama: {e}")
+
+
+def _ollama_watchdog_loop() -> None:
+    """
+    Background thread: checks Ollama every OLLAMA_WATCHDOG_INTERVAL seconds.
+    If it stops responding, attempts to restart it automatically.
+    """
+    # Give the app a moment to finish starting before first check
+    time.sleep(10)
+    while True:
+        if not _ollama_is_alive():
+            print("[Watchdog] Ollama is not responding — attempting restart...")
+            _start_ollama()
+        time.sleep(OLLAMA_WATCHDOG_INTERVAL)
+
+
+# ── Health endpoint ───────────────────────────────────────────────────────────
+
+@app.get("/api/health")
+async def health():
+    """Returns the live status of the app and the Ollama backend."""
+    ollama_ok = _ollama_is_alive()
+    return JSONResponse({
+        "app": "ok",
+        "ollama": "ok" if ollama_ok else "unavailable",
+        "ollama_url": OLLAMA_BASE_URL,
+        "active_sessions": len(SESSIONS),
+    }, status_code=200 if ollama_ok else 503)
+
+
 # ── Startup: ensure required directories exist ────────────────────────────────
 
 @app.on_event("startup")
@@ -486,6 +604,28 @@ async def startup():
     (BASE_DIR / "templates").mkdir(parents=True, exist_ok=True)
     (BASE_DIR / "uploads").mkdir(parents=True, exist_ok=True)
     (BASE_DIR / "reports").mkdir(parents=True, exist_ok=True)
+
+    # Start Ollama watchdog — auto-restarts Ollama if it crashes on RunPod
+    watchdog = threading.Thread(target=_ollama_watchdog_loop, daemon=True, name="ollama-watchdog")
+    watchdog.start()
+    print(f"[Watchdog] Ollama watchdog started — checking every {OLLAMA_WATCHDOG_INTERVAL}s.")
+
+    # If Ollama isn't already up, start it now
+    if not _ollama_is_alive():
+        print("[Watchdog] Ollama not detected on startup — attempting to start it...")
+        threading.Thread(target=_start_ollama, daemon=True).start()
+
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(
+        _cleanup_old_files,
+        trigger="interval",
+        hours=2,
+        id="file_cleanup",
+        replace_existing=True,
+    )
+    scheduler.start()
+    print(f"[Cleanup] Scheduler started — files older than "
+          f"{CLEANUP_MAX_AGE_SECONDS // 3600}h will be purged every 2 hours.")
 
 
 if __name__ == "__main__":

@@ -435,22 +435,21 @@ def create_mimic_resolution_task(
 
     return Task(
         description=(
-            "Using the Differential Diagnosis output, all visual lesion findings (colour, surface, "
-            "elevation, border, shape), patient biodata, and decomposed history:\n\n"
+            "Using the Differential Diagnosis output and all visual lesion findings (colour, surface, "
+            "elevation, border, shape):\n\n"
 
             "1. Identify the primary diagnosis and the highest-probability alternative (the mimic).\n"
-            "2. Compare them using both visual morphology and patient history.\n"
-            "3. Determine which diagnosis the total evidence supports more strongly.\n"
-            "4. Confirm the primary or promote the mimic — justify your call with specific findings.\n\n"
+            "2. List the specific morphological features that distinguish the two conditions.\n"
+            "3. Note which features in this case favour the primary and which (if any) favour the mimic.\n\n"
 
-            "Visual morphology carries more weight than non-specific symptoms. "
-            "Research evidence (if provided) may offer supporting context but carries lower weight "
-            "than visual morphology. "
-            "Do not anchor to either candidate — arbitrate honestly from the evidence."
+            "IMPORTANT: Do NOT state a final confirmed diagnosis. Do NOT say which condition wins. "
+            "Your role is comparison only — describing the distinguishing evidence. "
+            "A separate image-based system will make the authoritative final call after your output."
         ),
         expected_output=(
-            "A concise free-text mimic resolution summary with: confirmed diagnosis, rejected mimic, "
-            "single distinguishing factor, and brief reasoning."
+            "A concise free-text comparison of the primary diagnosis vs its closest mimic: "
+            "list the key distinguishing morphological features and note which features are "
+            "present or absent in this case. Do not state a winner or confirmed diagnosis."
         ),
         agent=agent,
         context=context,

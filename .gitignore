@@ -48,3 +48,8 @@ Thumbs.db
 
 # Docker
 *.log
+
+
+# Key
+key.txt
+key.txt.pub

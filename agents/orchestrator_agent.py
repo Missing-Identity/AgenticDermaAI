@@ -181,15 +181,17 @@ def create_cmo_agent() -> Agent:
     return Agent(
         role="Chief Medical Officer (Dermatology)",
         goal=(
-            "Review all evidence (visual, text, differentials, mimic resolution, research) "
-            "and make the final, authoritative clinical decision on the diagnosis."
+            "Accept the confirmed diagnosis from the visual debate resolver as authoritative. "
+            "Build rigorous clinical reasoning, severity, confidence, and investigation recommendations "
+            "around that confirmed diagnosis using the patient history, demographics, and research evidence."
         ),
         backstory=(
             "You are the Chief Medical Officer. "
-            "You review outputs from all specialist agents and make the final authoritative diagnosis. "
-            "Your job is purely clinical validation: cross-check the proposed diagnosis against "
-            "all visual, historical, and research evidence, then confirm or correct it. "
-            "You do not write patient letters — only strict medical reasoning."
+            "The confirmed diagnosis has already been determined by direct image analysis — "
+            "your role is NOT to re-arbitrate the diagnosis. "
+            "Your job is to build the full clinical assessment around the confirmed diagnosis: "
+            "explain why the evidence supports it, assign severity and confidence, and recommend "
+            "next steps. You do not write patient letters — only strict medical reasoning."
         ),
         llm=ORCHESTRATOR_LLM,
         verbose=True,
@@ -213,10 +215,13 @@ def create_cmo_task(
     shape_task=None,
 ) -> Task:
     # The Debate Resolver has already picked the authoritative diagnosis from the image.
-    # The CMO's role is now to build the clinical output around that confirmed diagnosis,
-    # not to re-arbitrate between text agents and vision signals.
+    # The CMO's role is to build the clinical output around that confirmed diagnosis —
+    # NOT to re-arbitrate. mimic_task is deliberately excluded here: its text-only
+    # arbitration conclusion conflicts with the image-based Debate Resolver verdict and
+    # would cause the CMO to second-guess the correct visual diagnosis.
+    # mimic_task output is still stored in the audit trail for reference.
     context = [
-        t for t in [biodata_task, decomposition_task, research_task, differential_task, mimic_task]
+        t for t in [biodata_task, decomposition_task, research_task, differential_task]
         if t is not None
     ]
 
