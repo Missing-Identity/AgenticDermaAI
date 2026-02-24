@@ -9,8 +9,10 @@ services:
     ports:
       - "127.0.0.1:11434:11434"
     volumes:
-      # Persist downloaded models across container restarts
-      - ollama_data:/root/.ollama
+      # Bind-mount the host's /root/.ollama directory so models stored on a
+      # RunPod network volume (mounted at /root/.ollama on the host) survive
+      # pod restarts. Falls back to a named Docker volume for local dev.
+      - ${OLLAMA_MODELS_PATH:-ollama_data}:/root/.ollama
     restart: unless-stopped
     deploy:
       resources:

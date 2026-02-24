@@ -1,0 +1,14 @@
+# Local development override — removes GPU requirement so Docker Desktop works
+# without NVIDIA Container Toolkit.
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.local.yml up --build
+#
+# Ollama will run on CPU (slow but fully functional for testing the stack).
+
+services:
+  ollama:
+    deploy:
+      resources:
+        reservations:
+          devices: []   # override: no GPU required
