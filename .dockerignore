@@ -48,6 +48,8 @@ Thumbs.db
 docker-compose.yml
 docker-compose.local.yml
 Dockerfile
+ollama-entrypoint.sh
+startup.sh
 
 # Documentation
 v2-guide/

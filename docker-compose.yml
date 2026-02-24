@@ -13,6 +13,9 @@ services:
       # RunPod network volume (mounted at /root/.ollama on the host) survive
       # pod restarts. Falls back to a named Docker volume for local dev.
       - ${OLLAMA_MODELS_PATH:-ollama_data}:/root/.ollama
+      # Mount the entrypoint script into the container
+      - ./ollama-entrypoint.sh:/ollama-entrypoint.sh
+    entrypoint: ["/bin/bash", "/ollama-entrypoint.sh"]
     restart: unless-stopped
     deploy:
       resources:
@@ -22,10 +25,13 @@ services:
               count: all
               capabilities: [gpu]
     healthcheck:
+      # Only passes once Ollama is serving AND all models are listed
       test: ["CMD", "ollama", "list"]
       interval: 30s
       timeout: 10s
-      start_period: 30s
+      # start_period gives the model downloads time to finish before Docker
+      # starts counting healthcheck failures. ~30 min for ~7 GB on a fast link.
+      start_period: 30m
       retries: 3
 
   # ── FastAPI application ──────────────────────────────────────────────────────
