@@ -266,6 +266,67 @@ def run_debate_resolver(
     )
 
 
+# ── Initial Holistic MedGemma Diagnosis ───────────────────────────────────────
+
+class MedGemmaInitialDiagnosis(ResilientBase):
+    """
+    Structured result of the very first MedGemma call — image + patient symptoms,
+    free-form response parsed by the formatter LLM into primary diagnosis + reasoning.
+    This is the highest-authority anchor for the entire pipeline.
+    """
+
+    primary_diagnosis: str = Field(
+        default="",
+        description="The primary diagnosis MedGemma identified from the image and patient symptoms",
+    )
+    reasoning: str = Field(
+        default="",
+        description="MedGemma's clinical reasoning supporting the diagnosis",
+    )
+
+    @field_validator("primary_diagnosis", "reasoning", mode="before")
+    @classmethod
+    def coerce_null_str(cls, v):
+        return v if v is not None else ""
+
+
+def run_initial_medgemma_diagnosis(
+    image_path: str,
+    patient_text: str,
+) -> MedGemmaInitialDiagnosis:
+    """
+    First step of the pipeline: MedGemma examines the image alongside whatever
+    the patient has typed. No format nudging — MedGemma writes freely.
+    The formatter LLM (adapt_to_model) then extracts the structured result.
+
+    Args:
+        image_path:   Path to the skin lesion image.
+        patient_text: The patient's raw symptom description + profile details.
+
+    Returns:
+        MedGemmaInitialDiagnosis with primary_diagnosis and reasoning.
+    """
+    if not image_path:
+        return MedGemmaInitialDiagnosis()
+
+    prompt = (
+        "You are a dermatologist. Here is the patient's information:\n\n"
+        f"{patient_text}\n\n"
+        "What is your diagnosis?"
+    )
+
+    tool = ImageAnalysisTool()
+    raw = tool._run(image_path, prompt)
+
+    print(f"\n[InitialDiagnosis] MedGemma raw response:\n{raw[:300]}{'...' if len(raw) > 300 else ''}")
+
+    parsed, meta = adapt_to_model(raw, MedGemmaInitialDiagnosis, "medgemma_initial")
+    status = meta.get("status", "unknown")
+    print(f"[InitialDiagnosis] Formatter status: {status} | Diagnosis: {parsed.primary_diagnosis}")
+
+    return parsed
+
+
 # ── Legacy: per-candidate Visual Differential Review ──────────────────────────
 
 def run_visual_differential_review(

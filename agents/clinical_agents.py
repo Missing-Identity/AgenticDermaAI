@@ -358,6 +358,7 @@ def create_differential_task(
     shape_task=None,
     decomposition_task=None,
     research_task=None,
+    medgemma_anchor: str = "",
 ) -> Task:
     context = [
         t for t in [
@@ -367,8 +368,16 @@ def create_differential_task(
         if t is not None
     ]
 
+    anchor_block = ""
+    if medgemma_anchor:
+        anchor_block = (
+            f"MEDGEMMA PRIMARY DIAGNOSIS (default — treat as correct unless evidence strongly contradicts):\n"
+            f"   {medgemma_anchor}\n\n"
+        )
+
     return Task(
         description=(
+            anchor_block +
             "Using ALL upstream agent outputs — visual lesion findings (colour, surface, elevation, "
             "border, shape), patient biodata, decomposed symptoms, and research evidence — "
             "produce a ranked differential diagnosis.\n\n"
@@ -423,6 +432,7 @@ def create_mimic_resolution_task(
     biodata_task=None,
     decomposition_task=None,
     research_task=None,
+    medgemma_anchor: str = "",
 ) -> Task:
     context = [
         t for t in [
@@ -433,8 +443,16 @@ def create_mimic_resolution_task(
         if t is not None
     ]
 
+    anchor_block = ""
+    if medgemma_anchor:
+        anchor_block = (
+            f"MEDGEMMA PRIMARY DIAGNOSIS (default — treat as correct unless evidence strongly contradicts):\n"
+            f"   {medgemma_anchor}\n\n"
+        )
+
     return Task(
         description=(
+            anchor_block +
             "Using the Differential Diagnosis output and all visual lesion findings (colour, surface, "
             "elevation, border, shape):\n\n"
 
